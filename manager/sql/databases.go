@@ -12,7 +12,29 @@ type Statements struct {
 	QueryInsertPolicySubjects     string
 	QueryInsertPolicySubjectsRel  string
 	QueryRequestCandidates        string
+	QueryPoliciesForResource      string
 }
+
+const queryBase = `
+SELECT
+	p.id,
+	p.effect,
+	p.conditions,
+	p.description,
+	subject.template AS subject,
+	resource.template AS resource,
+	action.template AS action
+FROM
+	ladon_policy AS p
+
+	LEFT JOIN ladon_policy_subject_rel AS rs ON rs.policy = p.id
+	LEFT JOIN ladon_policy_action_rel AS ra ON ra.policy = p.id
+	LEFT JOIN ladon_policy_resource_rel AS rr ON rr.policy = p.id
+
+	LEFT JOIN ladon_subject AS subject ON rs.subject = subject.id
+	LEFT JOIN ladon_action AS action ON ra.action = action.id
+	LEFT JOIN ladon_resource AS resource ON rr.resource = resource.id
+`
 
 var sharedMigrations = []*migrate.Migration{
 	{
@@ -125,29 +147,24 @@ var Migrations = map[string]Statements{
 		QueryInsertPolicyResourcesRel: `INSERT INTO ladon_policy_resource_rel (policy, resource) SELECT $1::varchar, $2::varchar WHERE NOT EXISTS (SELECT 1 FROM ladon_policy_resource_rel WHERE policy = $1 AND resource = $2)`,
 		QueryInsertPolicySubjects:     `INSERT INTO ladon_subject (id, template, compiled, has_regex) SELECT $1::varchar, $2, $3, $4 WHERE NOT EXISTS (SELECT 1 FROM ladon_subject WHERE id = $1)`,
 		QueryInsertPolicySubjectsRel:  `INSERT INTO ladon_policy_subject_rel (policy, subject) SELECT $1::varchar, $2::varchar WHERE NOT EXISTS (SELECT 1 FROM ladon_policy_subject_rel WHERE policy = $1 AND subject = $2)`,
-		QueryRequestCandidates: `
-		SELECT
-			p.id,
-			p.effect,
-			p.conditions,
-			p.description,
-			subject.template AS subject,
-			resource.template AS resource,
-			action.template AS action
-		FROM
-			ladon_policy AS p
-
-			INNER JOIN ladon_policy_subject_rel AS rs ON rs.policy = p.id
-			LEFT JOIN ladon_policy_action_rel AS ra ON ra.policy = p.id
-			LEFT JOIN ladon_policy_resource_rel AS rr ON rr.policy = p.id
-
-			INNER JOIN ladon_subject AS subject ON rs.subject = subject.id
-			LEFT JOIN ladon_action AS action ON ra.action = action.id
-			LEFT JOIN ladon_resource AS resource ON rr.resource = resource.id
-		WHERE
-			(subject.has_regex IS NOT TRUE AND subject.template = $1)
-			OR
-			(subject.has_regex IS TRUE AND $2 ~ subject.compiled)`,
+		QueryRequestCandidates: queryBase + `
+WHERE p.id IN
+	(SELECT lp.id FROM ladon_policy AS lp
+		INNER JOIN ladon_policy_subject_rel AS lps ON lps.policy = lp.id
+		INNER JOIN ladon_subject AS ls ON lps.subject = ls.id
+	WHERE
+	 	(ls.has_regex IS NOT TRUE AND ls.template = $1)
+		OR
+		(ls.has_regex IS TRUE AND $2 ~ ls.compiled))`,
+		QueryPoliciesForResource: queryBase + `
+WHERE p.id IN
+	(SELECT lp.id FROM ladon_policy AS lp
+		INNER JOIN ladon_policy_resource_rel AS lpr ON lpr.policy = lp.id
+		INNER JOIN ladon_resource AS lr ON lpr.resource = lr.id
+	WHERE
+		(lr.has_regex IS NOT TRUE AND lr.template = $1)
+		OR
+		(lr.has_regex IS TRUE AND $2 ~ lr.compiled))`,
 	},
 	"mysql": {
 		Migrations: &migrate.MemoryMigrationSource{
@@ -176,28 +193,23 @@ var Migrations = map[string]Statements{
 		QueryInsertPolicyResourcesRel: `INSERT IGNORE INTO ladon_policy_resource_rel (policy, resource) VALUES(?,?)`,
 		QueryInsertPolicySubjects:     `INSERT IGNORE INTO ladon_subject (id, template, compiled, has_regex) VALUES(?,?,?,?)`,
 		QueryInsertPolicySubjectsRel:  `INSERT IGNORE INTO ladon_policy_subject_rel (policy, subject) VALUES(?,?)`,
-		QueryRequestCandidates: `
-		SELECT
-			p.id,
-			p.effect,
-			p.conditions,
-			p.description,
-			subject.template AS subject,
-			resource.template AS resource,
-			action.template AS action
-		FROM
-			ladon_policy AS p
-
-			INNER JOIN ladon_policy_subject_rel AS rs ON rs.policy = p.id
-			LEFT JOIN ladon_policy_action_rel AS ra ON ra.policy = p.id
-			LEFT JOIN ladon_policy_resource_rel AS rr ON rr.policy = p.id
-
-			INNER JOIN ladon_subject AS subject ON rs.subject = subject.id
-			LEFT JOIN ladon_action AS action ON ra.action = action.id
-			LEFT JOIN ladon_resource AS resource ON rr.resource = resource.id
-		WHERE
-			(subject.has_regex = 0 AND subject.template = ?)
-			OR
-			(subject.has_regex = 1 AND ? REGEXP BINARY subject.compiled)`,
+		QueryRequestCandidates: queryBase + `
+WHERE p.id IN
+	(SELECT lp.id FROM ladon_policy AS lp
+		INNER JOIN ladon_policy_subject_rel AS lps ON lps.policy = lp.id
+		INNER JOIN ladon_subject AS ls ON lps.subject = ls.id
+	WHERE
+	 	(ls.has_regex = 0 AND ls.template = ?)
+		OR
+		(ls.has_regex = 1 AND ? REGEXP BINARY ls.compiled))`,
+		QueryPoliciesForResource: queryBase + `
+WHERE p.id IN
+	(SELECT lp.id FROM ladon_policy AS lp
+		INNER JOIN ladon_policy_resource_rel AS lpr ON lpr.policy = lp.id
+		INNER JOIN ladon_resource AS lr ON lpr.resource = lr.id
+	WHERE
+		(lr.has_regex = 0 AND lr.template = ?)
+		OR
+		(lr.has_regex = 1 AND ? REGEXP BINARY lr.compiled))`,
 	},
 }

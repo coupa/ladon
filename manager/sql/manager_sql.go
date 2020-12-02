@@ -25,7 +25,7 @@ import (
 	. "github.com/ory/ladon"
 	"github.com/ory/ladon/compiler"
 	"github.com/pkg/errors"
-	"github.com/rubenv/sql-migrate"
+	migrate "github.com/rubenv/sql-migrate"
 )
 
 // SQLManager is a postgres implementation for Manager to store policies persistently.
@@ -190,6 +190,20 @@ func (s *SQLManager) FindRequestCandidates(r *Request) (Policies, error) {
 	query := Migrations[s.database].QueryRequestCandidates
 
 	rows, err := s.db.Query(s.db.Rebind(query), r.Subject, r.Subject)
+	if err == sql.ErrNoRows {
+		return nil, NewErrResourceNotFound(err)
+	} else if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer rows.Close()
+
+	return scanRows(rows)
+}
+
+func (s *SQLManager) FindPoliciesForResource(r *Request) (Policies, error) {
+	query := Migrations[s.database].QueryPoliciesForResource
+
+	rows, err := s.db.Query(s.db.Rebind(query), r.Resource, r.Resource)
 	if err == sql.ErrNoRows {
 		return nil, NewErrResourceNotFound(err)
 	} else if err != nil {
