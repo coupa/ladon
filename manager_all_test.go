@@ -101,6 +101,15 @@ func TestManagers(t *testing.T) {
 		}
 	})
 
+	t.Run("type=find by resource", func(t *testing.T) {
+		for k, s := range map[string]Manager{
+			"postgres": managers["postgres"],
+			"mysql":    managers["mysql"],
+		} {
+			t.Run(fmt.Sprintf("manager=%s", k), TestHelperFindPoliciesForResource(k, s))
+		}
+	})
+
 	t.Run("type=migrate 6 to 7", func(t *testing.T) {
 		for k, s := range map[string]ManagerMigrator{
 			"postgres": migrators["postgres"],

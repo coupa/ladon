@@ -175,7 +175,7 @@ var testPolicies = []*DefaultPolicy{
 		Description: "description",
 		Subjects:    []string{"sql<.*>match"},
 		Effect:      AllowAccess,
-		Resources:   []string{"master", "user", "article"},
+		Resources:   []string{"master", "user", "article", "group1"},
 		Actions:     []string{"create", "update", "delete"},
 		Conditions: Conditions{
 			"foo": &StringEqualCondition{
@@ -188,7 +188,7 @@ var testPolicies = []*DefaultPolicy{
 		Description: "description",
 		Subjects:    []string{"sqlmatch"},
 		Effect:      AllowAccess,
-		Resources:   []string{"master", "user", "article"},
+		Resources:   []string{"master", "user", "article", "group1"},
 		Actions:     []string{"create", "update", "delete"},
 		Conditions: Conditions{
 			"foo": &StringEqualCondition{
@@ -201,7 +201,7 @@ var testPolicies = []*DefaultPolicy{
 		Description: "description",
 		Subjects:    []string{},
 		Effect:      AllowAccess,
-		Resources:   []string{"master", "user", "article"},
+		Resources:   []string{"master", "user", "article", "group2"},
 		Actions:     []string{"create", "update", "delete"},
 		Conditions: Conditions{
 			"foo": &StringEqualCondition{
@@ -213,7 +213,7 @@ var testPolicies = []*DefaultPolicy{
 		ID:          uuid.New(),
 		Description: "description",
 		Effect:      AllowAccess,
-		Resources:   []string{"master", "user", "article"},
+		Resources:   []string{"master", "user", "article", "group3"},
 		Actions:     []string{"create", "update", "delete"},
 		Conditions: Conditions{
 			"foo": &StringEqualCondition{
@@ -259,6 +259,52 @@ func TestHelperFindPoliciesForSubject(k string, s Manager) func(t *testing.T) {
 	}
 }
 
+func TestHelperFindPoliciesForResource(k string, s Manager) func(t *testing.T) {
+	return func(t *testing.T) {
+		for _, c := range testPolicies {
+			t.Run(fmt.Sprintf("create=%s", k), func(t *testing.T) {
+				require.NoError(t, s.Create(c))
+			})
+		}
+
+		res, err := s.FindPoliciesForResource(&Request{
+			Resource: "article",
+		})
+		require.NoError(t, err)
+		require.Len(t, res, 4)
+
+		res, err = s.FindPoliciesForResource(&Request{
+			Resource: "group1",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, res, 2)
+
+		res, err = s.FindPoliciesForResource(&Request{
+			Resource: "group2",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, res, 1)
+		AssertPolicyEqual(t, testPolicies[2], res[0])
+
+		res, err = s.FindPoliciesForResource(&Request{
+			Resource: "group3",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, res, 1)
+		AssertPolicyEqual(t, testPolicies[3], res[0])
+
+		res, err = s.FindPoliciesForResource(&Request{
+			Resource: "not_found",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, res, 0)
+	}
+}
+
 func AssertPolicyEqual(t *testing.T, expected, got Policy) {
 	assert.Equal(t, expected.GetID(), got.GetID())
 	assert.Equal(t, expected.GetDescription(), got.GetDescription())
@@ -301,7 +347,7 @@ func testEq(a, b []string) error {
 		}
 
 		if !found {
-			return errors.Errorf("No match found: %s from %v in %v", i, a, b)
+			return errors.Errorf("No match found: %d from %v in %v", i, a, b)
 		}
 	}
 
