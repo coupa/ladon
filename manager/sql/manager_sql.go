@@ -200,6 +200,22 @@ func (s *SQLManager) FindRequestCandidates(r *Request) (Policies, error) {
 	return scanRows(rows)
 }
 
+// FindPoliciesForSubject returns full policy contents found for the subject
+func (s *SQLManager) FindPoliciesForSubject(r *Request) (Policies, error) {
+	query := Migrations[s.database].QueryPoliciesForSubject
+
+	rows, err := s.db.Query(s.db.Rebind(query), r.Subject, r.Subject)
+	if err == sql.ErrNoRows {
+		return nil, NewErrResourceNotFound(err)
+	} else if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer rows.Close()
+
+	return scanRows(rows)
+}
+
+// FindPoliciesForResource returns full policy contents found for the resource.
 func (s *SQLManager) FindPoliciesForResource(r *Request) (Policies, error) {
 	query := Migrations[s.database].QueryPoliciesForResource
 
