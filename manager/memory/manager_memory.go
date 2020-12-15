@@ -105,17 +105,10 @@ func (m *MemoryManager) FindRequestCandidates(r *Request) (Policies, error) {
 	return ps, nil
 }
 
-// FindPoliciesForResource returns candidates that could match the request object. It either returns
-// a set that exactly matches the request, or a superset of it. If an error occurs, it returns nil and
-// the error.
+func (m *MemoryManager) FindPoliciesForSubject(r *Request) (Policies, error) {
+	return m.FindRequestCandidates(r)
+}
+
 func (m *MemoryManager) FindPoliciesForResource(r *Request) (Policies, error) {
-	m.RLock()
-	defer m.RUnlock()
-	ps := make(Policies, len(m.Policies))
-	var count int
-	for _, p := range m.Policies {
-		ps[count] = p
-		count++
-	}
-	return ps, nil
+	return m.FindRequestCandidates(r)
 }

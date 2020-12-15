@@ -37,5 +37,11 @@ type Manager interface {
 	// the error.
 	FindRequestCandidates(r *Request) (Policies, error)
 
+	// FindPoliciesForSubject returns full policy contents found for the subject.
+	// FindRequestCandidates, however, does not return full policy contents.
+	FindPoliciesForSubject(r *Request) (Policies, error)
+
+	// FindPoliciesForResource returns full policy contents found for the resource.
+	// FindRequestCandidates, however, does not return full policy contents.
 	FindPoliciesForResource(r *Request) (Policies, error)
 }
