@@ -57,6 +57,24 @@ func (m *MemoryManager) GetAll(limit, offset int64) (Policies, error) {
 	return ps[start:end], nil
 }
 
+// Search returns all policies.
+func (m *MemoryManager) Search(id string) (Policies, error) {
+	ps := make(Policies, len(m.Policies))
+	i := 0
+
+	for _, p := range m.Policies {
+		ps[i] = p
+		i++
+	}
+
+	return ps, nil
+}
+
+//Count returns the number of policies
+func (m *MemoryManager) Count() (int, error) {
+	return len(m.Policies), nil
+}
+
 // Create a new pollicy to MemoryManager.
 func (m *MemoryManager) Create(policy Policy) error {
 	m.Lock()
