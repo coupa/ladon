@@ -26,11 +26,17 @@ type Manager interface {
 	// Get retrieves a policy.
 	Get(id string) (Policy, error)
 
+	// Search retrieves policies whose ids partial match the search string.
+	Search(id string) (Policies, error)
+
 	// Delete removes a policy.
 	Delete(id string) error
 
 	// GetAll retrieves all policies.
 	GetAll(limit, offset int64) (Policies, error)
+
+	//Count returns the number of policies
+	Count() (int, error)
 
 	// FindRequestCandidates returns candidates that could match the request object. It either returns
 	// a set that exactly matches the request, or a superset of it. If an error occurs, it returns nil and

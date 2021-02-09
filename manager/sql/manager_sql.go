@@ -324,6 +324,22 @@ LEFT JOIN ladon_subject as subject ON rs.subject = subject.id
 LEFT JOIN ladon_action as action ON ra.action = action.id
 LEFT JOIN ladon_resource as resource ON rr.resource = resource.id`
 
+var searchQuery = `SELECT
+	p.id, p.effect, p.conditions, p.description,
+	subject.template as subject, resource.template as resource, action.template as action
+FROM
+	ladon_policy as p
+
+LEFT JOIN ladon_policy_subject_rel as rs ON rs.policy = p.id
+LEFT JOIN ladon_policy_action_rel as ra ON ra.policy = p.id
+LEFT JOIN ladon_policy_resource_rel as rr ON rr.policy = p.id
+
+LEFT JOIN ladon_subject as subject ON rs.subject = subject.id
+LEFT JOIN ladon_action as action ON ra.action = action.id
+LEFT JOIN ladon_resource as resource ON rr.resource = resource.id
+
+WHERE p.id LIKE ? ORDER BY p.id`
+
 // GetAll returns all policies
 func (s *SQLManager) GetAll(limit, offset int64) (Policies, error) {
 	query := s.db.Rebind(getAllQuery)
@@ -357,6 +373,31 @@ func (s *SQLManager) Get(id string) (Policy, error) {
 	}
 
 	return policies[0], nil
+}
+
+// Search retrieves policies whose ids partial match the search string.
+func (s *SQLManager) Search(id string) (Policies, error) {
+	query := s.db.Rebind(searchQuery)
+	// Escape the special characters for the LIKE query
+	id = strings.ReplaceAll(id, "_", "\\_")
+	id = strings.ReplaceAll(id, "%", "\\%")
+
+	rows, err := s.db.Query(query, "%"+id+"%")
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer rows.Close()
+
+	return scanRows(rows)
+}
+
+//Count returns the number of policies
+func (s *SQLManager) Count() (int, error) {
+	var n int
+	if err := s.db.QueryRow("SELECT count(*) FROM ladon_policy").Scan(&n); err != nil {
+		return 0, errors.WithStack(err)
+	}
+	return n, nil
 }
 
 // Delete removes a policy.
