@@ -27,7 +27,7 @@ type Manager interface {
 	Get(id string) (Policy, error)
 
 	// Search retrieves policies whose ids partial match the search string.
-	Search(id string) (Policies, error)
+	Search(id string, limit, offset int64) (Policies, error)
 
 	// Delete removes a policy.
 	Delete(id string) error
