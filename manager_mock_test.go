@@ -118,15 +118,15 @@ func (_mr *_MockManagerRecorder) GetAll(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetAll", arg0, arg1)
 }
 
-func (_m *MockManager) Search(_param0 string) (ladon.Policies, error) {
-	ret := _m.ctrl.Call(_m, "Search", _param0)
+func (_m *MockManager) Search(_param0 string, _param1, _param2 int64) (ladon.Policies, error) {
+	ret := _m.ctrl.Call(_m, "Search", _param0, _param1, _param2)
 	ret0, _ := ret[0].(ladon.Policies)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-func (_mr *_MockManagerRecorder) Search(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "Search", arg0)
+func (_mr *_MockManagerRecorder) Search(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Search", arg0, arg1, arg2)
 }
 
 func (_m *MockManager) Count() (int, error) {

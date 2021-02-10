@@ -328,7 +328,7 @@ var searchQuery = `SELECT
 	p.id, p.effect, p.conditions, p.description,
 	subject.template as subject, resource.template as resource, action.template as action
 FROM
-	ladon_policy as p
+	(SELECT * from ladon_policy WHERE id LIKE ? ORDER BY id LIMIT ? OFFSET ?) as p
 
 LEFT JOIN ladon_policy_subject_rel as rs ON rs.policy = p.id
 LEFT JOIN ladon_policy_action_rel as ra ON ra.policy = p.id
@@ -336,9 +336,7 @@ LEFT JOIN ladon_policy_resource_rel as rr ON rr.policy = p.id
 
 LEFT JOIN ladon_subject as subject ON rs.subject = subject.id
 LEFT JOIN ladon_action as action ON ra.action = action.id
-LEFT JOIN ladon_resource as resource ON rr.resource = resource.id
-
-WHERE p.id LIKE ? ORDER BY p.id`
+LEFT JOIN ladon_resource as resource ON rr.resource = resource.id`
 
 // GetAll returns all policies
 func (s *SQLManager) GetAll(limit, offset int64) (Policies, error) {
@@ -376,13 +374,13 @@ func (s *SQLManager) Get(id string) (Policy, error) {
 }
 
 // Search retrieves policies whose ids partial match the search string.
-func (s *SQLManager) Search(id string) (Policies, error) {
+func (s *SQLManager) Search(id string, limit, offset int64) (Policies, error) {
 	query := s.db.Rebind(searchQuery)
 	// Escape the special characters for the LIKE query
 	id = strings.ReplaceAll(id, "_", "\\_")
 	id = strings.ReplaceAll(id, "%", "\\%")
 
-	rows, err := s.db.Query(query, "%"+id+"%")
+	rows, err := s.db.Query(query, "%"+id+"%", limit, offset)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

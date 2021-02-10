@@ -58,7 +58,7 @@ func (m *MemoryManager) GetAll(limit, offset int64) (Policies, error) {
 }
 
 // Search returns all policies.
-func (m *MemoryManager) Search(id string) (Policies, error) {
+func (m *MemoryManager) Search(id string, limit, offset int64) (Policies, error) {
 	ps := make(Policies, len(m.Policies))
 	i := 0
 
